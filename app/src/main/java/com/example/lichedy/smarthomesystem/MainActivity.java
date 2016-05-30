@@ -49,7 +49,6 @@ public class MainActivity extends AppCompatActivity {
         Button sendMsg = (Button)findViewById(R.id.button);
 
         final postRequest client = new postRequest();
-
         final AsyncHttpResponseHandler response = new AsyncHttpResponseHandler() {
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
@@ -70,12 +69,14 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-                try {
-                    String response = new String(responseBody,"UTF-8");
-                    Toast.makeText(getApplicationContext(),response,Toast.LENGTH_SHORT).show();
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                }
+                if(responseBody != null){
+                    try {
+                        String message = new String(responseBody,"UTF-8");
+                        Toast.makeText(getApplicationContext(),message,Toast.LENGTH_SHORT).show();
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
+                } else Toast.makeText(getApplicationContext(),"Host not responding",Toast.LENGTH_SHORT).show();
 
             }
             @Override
@@ -137,6 +138,7 @@ public class MainActivity extends AppCompatActivity {
         private AsyncHttpClient client = new AsyncHttpClient();
 
         public void post(String url, AsyncHttpResponseHandler responseHandler, StringEntity message) {
+            client.setMaxRetriesAndTimeout(1,1000);
             client.post(getBaseContext(),getAbsoluteUrl(url),message,"text/plain", responseHandler);
         }
 
