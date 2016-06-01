@@ -1,4 +1,11 @@
 <resources>
     <string name="app_name">Smart Home System</string>
     <string name="action_settings">Settings</string>
+    <string-array name="valves">
+        <item>Travnjak v1</item>
+        <item>Travnjak v2</item>
+        <item>Zid v1</item>
+        <item>Zid v2</item>
+        <item>Plastenik v1</item>
+    </string-array>
 </resources>

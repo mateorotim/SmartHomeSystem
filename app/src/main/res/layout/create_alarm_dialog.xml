@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <NumberPicker
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/hourNP"
+        android:layout_alignTop="@+id/minuteNP"
+        android:layout_toLeftOf="@+id/minuteNP"
+        android:layout_toStartOf="@+id/minuteNP"
+        android:focusable="false" />
+
+    <NumberPicker
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/minuteNP"
+        android:layout_marginTop="15dp"
+        android:layout_below="@+id/valveSpinner"
+        android:layout_centerHorizontal="true"
+        android:layout_margin="10dp" />
+
+    <NumberPicker
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/durationNP"
+        android:layout_alignTop="@+id/minuteNP"
+        android:layout_toRightOf="@+id/minuteNP"
+        android:layout_toEndOf="@+id/minuteNP" />
+
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/alarmNameBox"
+        android:hint="Alarm name"
+        android:inputType="text"
+        android:layout_below="@+id/textView2"
+        android:layout_alignLeft="@+id/hourNP"
+        android:layout_alignStart="@+id/hourNP"
+        android:layout_alignRight="@+id/durationNP"
+        android:layout_alignEnd="@+id/durationNP" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="NEW ALARM"
+        android:id="@+id/textView2"
+        android:layout_marginTop="18dp"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true" />
+
+    <Spinner
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/valveSpinner"
+        android:layout_below="@+id/alarmNameBox"
+        android:layout_alignLeft="@+id/alarmNameBox"
+        android:layout_alignStart="@+id/alarmNameBox"
+        android:layout_alignRight="@+id/alarmNameBox"
+        android:layout_alignEnd="@+id/alarmNameBox" />
+
+</RelativeLayout>
