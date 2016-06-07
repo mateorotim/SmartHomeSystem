@@ -1,33 +1,39 @@
 package com.example.lichedy.smarthomesystem;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.view.ContextThemeWrapper;
-import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.inputmethod.InputMethodManager;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.EditText;
+import android.widget.CompoundButton;
+import android.widget.ListView;
 import android.widget.NumberPicker;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonElement;
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
 
@@ -36,9 +42,14 @@ import cz.msebera.android.httpclient.entity.StringEntity;
 
 public class MainActivity extends AppCompatActivity {
     String ipAdress;
-    int counter = 0;
+    int counter;
     Spinner vSpinner;
-
+    ListView alarmlist;
+    String[] alarmNameArray;
+    String[] valveName;
+    String[] alarmStart;
+    String[] alarmEND;
+    boolean[] alarmIsEnabled;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,11 +62,7 @@ public class MainActivity extends AppCompatActivity {
 
         final SharedPreferences counterPreference = getSharedPreferences("counter number", Activity.MODE_PRIVATE);
 
-        final EditText messageBox = (EditText)findViewById(R.id.messageBox);
-        final EditText ipBox = (EditText)findViewById(R.id.ipBox);
-        assert ipBox != null;
-        ipBox.setText(ipAdress);
-        Button sendMsg = (Button)findViewById(R.id.button);
+
 
         final postRequest client = new postRequest();
         final AsyncHttpResponseHandler response = new AsyncHttpResponseHandler() {
@@ -67,11 +74,20 @@ public class MainActivity extends AppCompatActivity {
                     String message = input.substring(16,input.length());
                     System.out.println("input=" + input);
                     String decrypted = decrypt(message,iv);
-                    Toast.makeText(getApplicationContext(),decrypted,Toast.LENGTH_SHORT).show();
-                    if(decrypted == "OK"){
-                        SharedPreferences.Editor editor = counterPreference.edit();
-                        editor.putInt("counter number", counter+1);
-                        editor.commit();
+
+                    JsonElement jsonElem = new JsonParser().parse(decrypted);
+                    if(jsonElem.isJsonArray()) {
+                        // Json data
+                        parseJson(decrypted);
+                    } else {
+                        // message data
+                        Toast.makeText(getApplicationContext(),decrypted,Toast.LENGTH_SHORT).show();
+
+                        if(decrypted == "OK"){
+                            SharedPreferences.Editor editor = counterPreference.edit();
+                            editor.putInt("counter number", counter+1);
+                            editor.commit();
+                        }
                     }
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
@@ -98,26 +114,6 @@ public class MainActivity extends AppCompatActivity {
 
             }
         };
-
-        //////////////THIS IS ONLY FOR TEST PURPOSES/////////////////
-        assert sendMsg != null;
-        sendMsg.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                ipAdress = ipBox.getText().toString();
-                PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).edit().putString("ip adress", ipAdress).commit();
-                InputMethodManager imm = (InputMethodManager)getSystemService(getApplicationContext().INPUT_METHOD_SERVICE);
-                imm.hideSoftInputFromWindow(ipBox.getWindowToken(),InputMethodManager.RESULT_UNCHANGED_SHOWN);
-                try {
-                    String crypted = encrypt(messageBox.getText().toString());
-                    StringEntity sEntity = new StringEntity(crypted,"UTF-8");
-                    client.post(ipAdress,response,sEntity);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        ///////////////////////////////////////////////////////////
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(new ContextThemeWrapper(this,R.style.AppTheme_Dialog));
         LayoutInflater inflater = getLayoutInflater();
@@ -164,7 +160,7 @@ public class MainActivity extends AppCompatActivity {
                 Message alarm = new Message();
                 alarm.command = "1";
                 alarm.device = "";
-                alarm.counter = counterPreference.getInt("counter number", -1);
+                alarm.counter = counterPreference.getInt("counter number", 0);
                 alarm.timer.name = alarmName.getText().toString();
                 alarm.timer.device = vSpinner.getSelectedItem().toString();
                 alarm.timer.startTime = calculateStartTime(npHour.getValue(),npMinute.getValue());
@@ -174,6 +170,7 @@ public class MainActivity extends AppCompatActivity {
 
                 try {
                     String encrypted = encrypt(jsonStringify(alarm));
+                    System.out.println("iv=" + jsonStringify(alarm));
                     StringEntity sEntity = new StringEntity(encrypted,"UTF-8");
                     client.post(ipAdress,response,sEntity);
 
@@ -191,11 +188,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
-
-
-
-
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         assert fab != null;
         fab.setOnClickListener(new View.OnClickListener() {
@@ -207,6 +199,27 @@ public class MainActivity extends AppCompatActivity {
                 //Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG).setAction("Action", null).show();
             }
         });
+
+        String[] values = new String[] { "Android", "iPhone", "WindowsMobile",
+                "Blackberry"};
+
+        String[] valves = new String[] { "v1", "v1", "v2",
+                "v3"};
+
+        String[] start = new String[] { "12:22", "13:22", "14:22",
+                "15:22"};
+
+        String[] end = new String[] { "10:11", "11:11", "12:11",
+                "13:11"};
+
+        boolean[] en = new boolean[] { true, false, false,
+                true};
+
+
+
+        MySimpleArrayAdapter adapter = new MySimpleArrayAdapter(this, values, valves, start, end, en);
+        alarmlist = (ListView)findViewById(R.id.alarmsList);
+        alarmlist.setAdapter(adapter);
     }
 
     @Override
@@ -225,6 +238,8 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            Intent settingsIntent = new Intent(this,SettingsActivity.class);
+            startActivity(settingsIntent);
             return true;
         }
 
@@ -300,5 +315,80 @@ public class MainActivity extends AppCompatActivity {
 
     public int calculateEndTime(int hours, int minutes, int duration){
         return hours * 60 * 60 + minutes * 60 + duration * 60;
+    }
+
+    public class MySimpleArrayAdapter extends ArrayAdapter<String> {
+        private final Context context;
+        private final String[] names;
+        private final String[] valves;
+        private final String[] start;
+        private final String[] end;
+        private final boolean[] isEnabled;
+
+        public MySimpleArrayAdapter(Context context, String[] values, String[] valves, String[] start, String[] end, boolean[] isEnabled) {
+            super(context, R.layout.list_layout, values);
+            this.context = context;
+            this.names = values;
+            this.valves = valves;
+            this.start = start;
+            this.end = end;
+            this.isEnabled = isEnabled;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            LayoutInflater inflater = (LayoutInflater) context
+                    .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            View rowView = inflater.inflate(R.layout.list_layout, parent, false);
+            final TextView alarmname = (TextView) rowView.findViewById(R.id.alarmNameBox);
+            TextView valvename = (TextView) rowView.findViewById(R.id.valveNameBox);
+            TextView starttime = (TextView) rowView.findViewById(R.id.startTimeBox);
+            TextView endtime = (TextView) rowView.findViewById(R.id.endTimeBox);
+            Switch togglealarm = (Switch) rowView.findViewById(R.id.toggleAlarmSwitch);
+            alarmname.setText(names[position]);
+            valvename.setText(valves[position]);
+            starttime.setText(start[position]);
+            endtime.setText(end[position]);
+            togglealarm.setChecked(isEnabled[position]);
+            togglealarm.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    String a = alarmname.getText().toString();
+                    if(isChecked){
+                        Toast.makeText(getApplicationContext(),"checked "+a,Toast.LENGTH_SHORT).show();
+                    }
+                    else {
+                        Toast.makeText(getApplicationContext(),"notchecked "+a,Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+
+
+            return rowView;
+        }
+    }
+
+    public void parseJson(String Json){
+        try {
+
+            JSONArray jr = new JSONArray(Json);
+            JSONObject jb = (JSONObject)jr.getJSONObject(0);
+            JSONArray alarmNames = jb.getJSONArray("name");
+            JSONArray valveNames = jb.getJSONArray("device");
+            JSONArray alarmsStartTime = jb.getJSONArray("startTime");
+            JSONArray alarmsEndTime = jb.getJSONArray("endTIme");
+            JSONArray alarmsEnabled = jb.getJSONArray("enabled");
+            for(int i=0;i<alarmNames.length();i++)
+            {
+                alarmNameArray[i] = alarmNames.getString(i);
+                valveName[i] = valveNames.getString(i);
+                alarmStart[i] =alarmsStartTime.getString(i);
+                alarmEND[i] = alarmsEndTime.getString(i);
+                alarmIsEnabled[i] = alarmsEnabled.getBoolean(i);
+            }
+        }catch(Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 }
