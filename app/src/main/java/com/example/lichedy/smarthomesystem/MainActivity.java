@@ -6,6 +6,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AlertDialog;
@@ -17,6 +18,10 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.ViewGroup;
+
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CompoundButton;
 import android.widget.ListView;
@@ -33,23 +38,26 @@ import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 
 import cz.msebera.android.httpclient.Header;
 import cz.msebera.android.httpclient.entity.StringEntity;
-
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity{
     String ipAdress;
     int counter;
     Spinner vSpinner;
     ListView alarmlist;
-    String[] alarmNameArray;
-    String[] valveName;
-    String[] alarmStart;
-    String[] alarmEND;
-    boolean[] alarmIsEnabled;
+    ArrayList<String>  alarmNamesList= new ArrayList<String>();
+    ArrayList<String>  valveNamesList= new ArrayList<String>();
+    ArrayList<String>  startTimeList= new ArrayList<String>();
+    ArrayList<String>  endTimeList= new ArrayList<String>();
+    ArrayList<Boolean>  alarmEnabledList= new ArrayList<Boolean>();
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
+        final MySimpleArrayAdapter adapter;
         ipAdress = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString("ip adress", "192.168.1.117:3000");
 
         final SharedPreferences counterPreference = getSharedPreferences("counter number", Activity.MODE_PRIVATE);
@@ -187,40 +195,70 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+        String JsonTest = "[ { \"name\": \"Kathy\", \"device\": \"Barr\", \"startTime\": 40, \"endTime\": 37, \"enabled\": true }, { \"name\": \"Juanita\", \"device\": \"Reynolds\", \"startTime\": 25, \"endTime\": 40, \"enabled\": false }, { \"name\": \"Adrian\", \"device\": \"Lesa\", \"startTime\": 20, \"endTime\": 38, \"enabled\": false }, { \"name\": \"Rita\", \"device\": \"Terri\", \"startTime\": 38, \"endTime\": 34, \"enabled\": false } ]";
+
+        try {
+            parseJson(JsonTest);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+
+        adapter = new MySimpleArrayAdapter(this, alarmNamesList, valveNamesList, startTimeList, endTimeList, alarmEnabledList);
+        alarmlist = (ListView)findViewById(R.id.alarmsList);
+        assert alarmlist != null;
+        alarmlist.setAdapter(adapter);
+        final SwipeDetector sw = new SwipeDetector();
+        alarmlist.setOnTouchListener(sw);
+        alarmlist.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, final int position, long id) {
+                if(sw.swipeDetected()) {
+                    if(sw.getAction() == SwipeDetector.Action.LR) {
+
+
+                        final Animation animation = AnimationUtils.loadAnimation(MainActivity.this,android.R.anim.slide_out_right);
+                        view.startAnimation(animation);
+                        Handler handle = new Handler();
+                        handle.postDelayed(new Runnable() {
+
+                            @Override
+                            public void run() {
+                                alarmNamesList.remove(position);
+                                valveNamesList.remove(position);
+                                startTimeList.remove(position);
+                                endTimeList.remove(position);
+                                alarmEnabledList.remove(position);
+                                adapter.notifyDataSetChanged();
+                                animation.cancel();
+                            }
+                        },400);
+
+                    } else {
+
+                    }
+                }
+
+            }
+        });
+
+
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         assert fab != null;
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
                 alarmDialog.show();
 
                 //Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG).setAction("Action", null).show();
             }
         });
 
-        String[] values = new String[] { "Android", "iPhone", "WindowsMobile",
-                "Blackberry"};
 
-        String[] valves = new String[] { "v1", "v1", "v2",
-                "v3"};
-
-        String[] start = new String[] { "12:22", "13:22", "14:22",
-                "15:22"};
-
-        String[] end = new String[] { "10:11", "11:11", "12:11",
-                "13:11"};
-
-        boolean[] en = new boolean[] { true, false, false,
-                true};
-
-
-
-        MySimpleArrayAdapter adapter = new MySimpleArrayAdapter(this, values, valves, start, end, en);
-        alarmlist = (ListView)findViewById(R.id.alarmsList);
-        alarmlist.setAdapter(adapter);
     }
+
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -319,13 +357,13 @@ public class MainActivity extends AppCompatActivity {
 
     public class MySimpleArrayAdapter extends ArrayAdapter<String> {
         private final Context context;
-        private final String[] names;
-        private final String[] valves;
-        private final String[] start;
-        private final String[] end;
-        private final boolean[] isEnabled;
+        private final ArrayList<String> names;
+        private final ArrayList<String> valves;
+        private final ArrayList<String> start;
+        private final ArrayList<String> end;
+        private final ArrayList<Boolean> isEnabled;
 
-        public MySimpleArrayAdapter(Context context, String[] values, String[] valves, String[] start, String[] end, boolean[] isEnabled) {
+        public MySimpleArrayAdapter(Context context, ArrayList<String>values, ArrayList<String> valves, ArrayList<String> start, ArrayList<String> end, ArrayList<Boolean> isEnabled) {
             super(context, R.layout.list_layout, values);
             this.context = context;
             this.names = values;
@@ -345,11 +383,11 @@ public class MainActivity extends AppCompatActivity {
             TextView starttime = (TextView) rowView.findViewById(R.id.startTimeBox);
             TextView endtime = (TextView) rowView.findViewById(R.id.endTimeBox);
             Switch togglealarm = (Switch) rowView.findViewById(R.id.toggleAlarmSwitch);
-            alarmname.setText(names[position]);
-            valvename.setText(valves[position]);
-            starttime.setText(start[position]);
-            endtime.setText(end[position]);
-            togglealarm.setChecked(isEnabled[position]);
+            alarmname.setText(names.get(position));
+            valvename.setText(valves.get(position));
+            starttime.setText(start.get(position));
+            endtime.setText(end.get(position));
+            togglealarm.setChecked(isEnabled.get(position));
             togglealarm.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
                 public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -368,27 +406,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void parseJson(String Json){
-        try {
+    public void parseJson(String Json) throws JSONException {
+        JSONArray jsonarray = new JSONArray(Json);
 
-            JSONArray jr = new JSONArray(Json);
-            JSONObject jb = (JSONObject)jr.getJSONObject(0);
-            JSONArray alarmNames = jb.getJSONArray("name");
-            JSONArray valveNames = jb.getJSONArray("device");
-            JSONArray alarmsStartTime = jb.getJSONArray("startTime");
-            JSONArray alarmsEndTime = jb.getJSONArray("endTIme");
-            JSONArray alarmsEnabled = jb.getJSONArray("enabled");
-            for(int i=0;i<alarmNames.length();i++)
-            {
-                alarmNameArray[i] = alarmNames.getString(i);
-                valveName[i] = valveNames.getString(i);
-                alarmStart[i] =alarmsStartTime.getString(i);
-                alarmEND[i] = alarmsEndTime.getString(i);
-                alarmIsEnabled[i] = alarmsEnabled.getBoolean(i);
-            }
-        }catch(Exception e)
-        {
-            e.printStackTrace();
+        for (int i = 0; i < jsonarray.length(); i++) {
+            JSONObject jsonobject = jsonarray.getJSONObject(i);
+            alarmNamesList.add(jsonobject.getString("name"));
+            valveNamesList.add(jsonobject.getString("device"));
+            startTimeList.add(jsonobject.getString("startTime"));
+            endTimeList.add(jsonobject.getString("endTime"));
+            alarmEnabledList.add(jsonobject.getBoolean("enabled"));
+
         }
     }
 }
