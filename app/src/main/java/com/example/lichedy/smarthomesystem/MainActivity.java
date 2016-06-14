@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.view.ContextThemeWrapper;
@@ -46,7 +47,7 @@ import java.util.ArrayList;
 
 import cz.msebera.android.httpclient.Header;
 import cz.msebera.android.httpclient.entity.StringEntity;
-public class MainActivity extends AppCompatActivity{
+public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener{
     String ipAdress;
     int counter;
     Spinner vSpinner;
@@ -59,6 +60,7 @@ public class MainActivity extends AppCompatActivity{
     MySimpleArrayAdapter adapter;
     postRequest client = new postRequest();
     AsyncHttpResponseHandler response;
+    SwipeRefreshLayout swipeRefreshLayout;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,8 +71,7 @@ public class MainActivity extends AppCompatActivity{
         ipAdress = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString("ip adress", "192.168.1.117:3000");
 
         final SharedPreferences counterPreference = getSharedPreferences("counter number", Activity.MODE_PRIVATE);
-
-
+        swipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
 
         response = new AsyncHttpResponseHandler() {
             @Override
@@ -86,7 +87,9 @@ public class MainActivity extends AppCompatActivity{
                     if(jsonElem.isJsonArray()) {
                         // Json data
                         parseJson(decrypted);
-
+                        adapter.notifyDataSetChanged();
+                        swipeRefreshLayout.setRefreshing(false);
+                        Toast.makeText(getApplicationContext(),"refreshed",Toast.LENGTH_SHORT).show();
                     } else {
                         // message data
                         Toast.makeText(getApplicationContext(),decrypted,Toast.LENGTH_SHORT).show();
@@ -114,7 +117,10 @@ public class MainActivity extends AppCompatActivity{
                     } catch (UnsupportedEncodingException e) {
                         e.printStackTrace();
                     }
-                } else Toast.makeText(getApplicationContext(),"Host not responding",Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(getApplicationContext(),"Host not responding",Toast.LENGTH_SHORT).show();
+                    swipeRefreshLayout.setRefreshing(false);
+                }
 
             }
             @Override
@@ -205,7 +211,21 @@ public class MainActivity extends AppCompatActivity{
         } catch (JSONException e) {
             e.printStackTrace();
         }*/
-        getlist();
+        swipeRefreshLayout.setOnRefreshListener(this);
+
+        /**
+         * Showing Swipe Refresh animation on activity create
+         * As animation won't start on onCreate, post runnable is used
+         */
+        swipeRefreshLayout.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        swipeRefreshLayout.setRefreshing(true);
+
+                                        getlist();
+                                    }
+                                }
+        );
 
 
         adapter = new MySimpleArrayAdapter(this, alarmNamesList, valveNamesList, startTimeList, endTimeList, alarmEnabledList);
@@ -296,6 +316,11 @@ public class MainActivity extends AppCompatActivity{
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onRefresh() {
+        getlist();
     }
 
     public class postRequest {
@@ -463,7 +488,6 @@ public class MainActivity extends AppCompatActivity{
             startTimeList.add(jsonobject.getInt("startTime"));
             endTimeList.add(jsonobject.getInt("endTime"));
             alarmEnabledList.add(jsonobject.getBoolean("enabled"));
-            adapter.notifyDataSetChanged();
         }
     }
 
