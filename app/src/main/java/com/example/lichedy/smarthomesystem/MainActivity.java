@@ -53,27 +53,26 @@ public class MainActivity extends AppCompatActivity{
     ListView alarmlist;
     ArrayList<String>  alarmNamesList= new ArrayList<String>();
     ArrayList<String>  valveNamesList= new ArrayList<String>();
-    ArrayList<String>  startTimeList= new ArrayList<String>();
-    ArrayList<String>  endTimeList= new ArrayList<String>();
+    ArrayList<Integer>  startTimeList= new ArrayList<Integer>();
+    ArrayList<Integer>  endTimeList= new ArrayList<Integer>();
     ArrayList<Boolean>  alarmEnabledList= new ArrayList<Boolean>();
-
-
-
+    MySimpleArrayAdapter adapter;
+    postRequest client = new postRequest();
+    AsyncHttpResponseHandler response;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        final MySimpleArrayAdapter adapter;
+
         ipAdress = PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString("ip adress", "192.168.1.117:3000");
 
         final SharedPreferences counterPreference = getSharedPreferences("counter number", Activity.MODE_PRIVATE);
 
 
 
-        final postRequest client = new postRequest();
-        final AsyncHttpResponseHandler response = new AsyncHttpResponseHandler() {
+        response = new AsyncHttpResponseHandler() {
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
                 try {
@@ -87,6 +86,7 @@ public class MainActivity extends AppCompatActivity{
                     if(jsonElem.isJsonArray()) {
                         // Json data
                         parseJson(decrypted);
+
                     } else {
                         // message data
                         Toast.makeText(getApplicationContext(),decrypted,Toast.LENGTH_SHORT).show();
@@ -166,7 +166,7 @@ public class MainActivity extends AppCompatActivity{
 
 
                 Message alarm = new Message();
-                alarm.command = "1";
+                alarm.command = "add";
                 alarm.device = "";
                 alarm.counter = counterPreference.getInt("counter number", 0);
                 alarm.timer.name = alarmName.getText().toString();
@@ -178,9 +178,11 @@ public class MainActivity extends AppCompatActivity{
 
                 try {
                     String encrypted = encrypt(jsonStringify(alarm));
-                    System.out.println("iv=" + jsonStringify(alarm));
+                    System.out.println("encrypted json=" + jsonStringify(alarm));
                     StringEntity sEntity = new StringEntity(encrypted,"UTF-8");
-                    client.post(ipAdress,response,sEntity);
+                    System.out.println("poslo na server" + sEntity);
+                    client.post(PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString("ip adress", "192.168.1.117:3000"),response,sEntity);
+                    getlist();
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -195,13 +197,15 @@ public class MainActivity extends AppCompatActivity{
 
             }
         });
-        String JsonTest = "[ { \"name\": \"Kathy\", \"device\": \"Barr\", \"startTime\": 40, \"endTime\": 37, \"enabled\": true }, { \"name\": \"Juanita\", \"device\": \"Reynolds\", \"startTime\": 25, \"endTime\": 40, \"enabled\": false }, { \"name\": \"Adrian\", \"device\": \"Lesa\", \"startTime\": 20, \"endTime\": 38, \"enabled\": false }, { \"name\": \"Rita\", \"device\": \"Terri\", \"startTime\": 38, \"endTime\": 34, \"enabled\": false } ]";
+        //String JsonTest = "[ { \"name\": \"Kathy\", \"device\": \"Barr\", \"startTime\": 40, \"endTime\": 37, \"enabled\": true }, { \"name\": \"Juanita\", \"device\": \"Reynolds\", \"startTime\": 25, \"endTime\": 40, \"enabled\": false }, { \"name\": \"Adrian\", \"device\": \"Lesa\", \"startTime\": 20, \"endTime\": 38, \"enabled\": false }, { \"name\": \"Rita\", \"device\": \"Terri\", \"startTime\": 38, \"endTime\": 34, \"enabled\": false } ]";
 
+        /*
         try {
             parseJson(JsonTest);
         } catch (JSONException e) {
             e.printStackTrace();
-        }
+        }*/
+        getlist();
 
 
         adapter = new MySimpleArrayAdapter(this, alarmNamesList, valveNamesList, startTimeList, endTimeList, alarmEnabledList);
@@ -224,12 +228,23 @@ public class MainActivity extends AppCompatActivity{
 
                             @Override
                             public void run() {
-                                alarmNamesList.remove(position);
-                                valveNamesList.remove(position);
-                                startTimeList.remove(position);
-                                endTimeList.remove(position);
-                                alarmEnabledList.remove(position);
-                                adapter.notifyDataSetChanged();
+
+
+
+                                Message listaalarma = new Message();
+                                listaalarma.command = "remove";
+                                listaalarma.timer.name = alarmNamesList.get(position);
+                                try {
+                                    String encrypted = encrypt(jsonStringify(listaalarma));
+                                    System.out.println(jsonStringify(listaalarma));
+                                    StringEntity sEntity = new StringEntity(encrypted,"UTF-8");
+                                    System.out.println("poslo na server" + sEntity);
+                                    client.post(PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString("ip adress", "192.168.1.117:3000"),response,sEntity);
+
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                                getlist();
                                 animation.cancel();
                             }
                         },400);
@@ -243,14 +258,13 @@ public class MainActivity extends AppCompatActivity{
         });
 
 
-
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         assert fab != null;
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 alarmDialog.show();
-
+                adapter.notifyDataSetChanged();
                 //Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG).setAction("Action", null).show();
             }
         });
@@ -313,7 +327,7 @@ public class MainActivity extends AppCompatActivity{
         System.out.println("key=" + key);
         String output = _crypt.encrypt(message, key,iv); //decrypt
         System.out.println("iv=" + iv);
-        System.out.println("message " + output);
+        System.out.println("output " + iv + output + " lenght: " + output.length());
         return iv + output;
     }
 
@@ -336,8 +350,8 @@ public class MainActivity extends AppCompatActivity{
         }
     }
     class Timer{
-        public String name,
-                device;
+        public String name = "placeholder",
+                device = "placeholder";
         public int startTime,
                 endTime;
         boolean active,
@@ -359,11 +373,11 @@ public class MainActivity extends AppCompatActivity{
         private final Context context;
         private final ArrayList<String> names;
         private final ArrayList<String> valves;
-        private final ArrayList<String> start;
-        private final ArrayList<String> end;
+        private final ArrayList<Integer> start;
+        private final ArrayList<Integer> end;
         private final ArrayList<Boolean> isEnabled;
 
-        public MySimpleArrayAdapter(Context context, ArrayList<String>values, ArrayList<String> valves, ArrayList<String> start, ArrayList<String> end, ArrayList<Boolean> isEnabled) {
+        public MySimpleArrayAdapter(Context context, ArrayList<String>values, ArrayList<String> valves, ArrayList<Integer> start, ArrayList<Integer> end, ArrayList<Boolean> isEnabled) {
             super(context, R.layout.list_layout, values);
             this.context = context;
             this.names = values;
@@ -385,18 +399,46 @@ public class MainActivity extends AppCompatActivity{
             Switch togglealarm = (Switch) rowView.findViewById(R.id.toggleAlarmSwitch);
             alarmname.setText(names.get(position));
             valvename.setText(valves.get(position));
-            starttime.setText(start.get(position));
-            endtime.setText(end.get(position));
+            starttime.setText(start.get(position).toString());
+            endtime.setText(end.get(position).toString());
             togglealarm.setChecked(isEnabled.get(position));
             togglealarm.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
                 public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                     String a = alarmname.getText().toString();
                     if(isChecked){
-                        Toast.makeText(getApplicationContext(),"checked "+a,Toast.LENGTH_SHORT).show();
+                        Message togglealarmmessage = new Message();
+                        togglealarmmessage.command = "toggle";
+                        togglealarmmessage.timer.name = alarmname.getText().toString();
+                        togglealarmmessage.timer.enabled = true;
+                        try {
+                            String encrypted = encrypt(jsonStringify(togglealarmmessage));
+                            System.out.println(jsonStringify(togglealarmmessage));
+                            StringEntity sEntity = new StringEntity(encrypted,"UTF-8");
+                            System.out.println("poslo na server" + sEntity);
+                            client.post(PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString("ip adress", "192.168.1.117:3000"),response,sEntity);
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        getlist();
                     }
                     else {
-                        Toast.makeText(getApplicationContext(),"notchecked "+a,Toast.LENGTH_SHORT).show();
+                        Message togglealarmmessage = new Message();
+                        togglealarmmessage.command = "toggle";
+                        togglealarmmessage.timer.name = alarmname.getText().toString();
+                        togglealarmmessage.timer.enabled = true;
+                        try {
+                            String encrypted = encrypt(jsonStringify(togglealarmmessage));
+                            System.out.println(jsonStringify(togglealarmmessage));
+                            StringEntity sEntity = new StringEntity(encrypted,"UTF-8");
+                            System.out.println("poslo na server" + sEntity);
+                            client.post(PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString("ip adress", "192.168.1.117:3000"),response,sEntity);
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        getlist();
                     }
                 }
             });
@@ -407,16 +449,38 @@ public class MainActivity extends AppCompatActivity{
     }
 
     public void parseJson(String Json) throws JSONException {
+        alarmNamesList.clear();
+        valveNamesList.clear();
+        startTimeList.clear();
+        endTimeList.clear();
+        alarmEnabledList.clear();
         JSONArray jsonarray = new JSONArray(Json);
 
         for (int i = 0; i < jsonarray.length(); i++) {
             JSONObject jsonobject = jsonarray.getJSONObject(i);
             alarmNamesList.add(jsonobject.getString("name"));
             valveNamesList.add(jsonobject.getString("device"));
-            startTimeList.add(jsonobject.getString("startTime"));
-            endTimeList.add(jsonobject.getString("endTime"));
+            startTimeList.add(jsonobject.getInt("startTime"));
+            endTimeList.add(jsonobject.getInt("endTime"));
             alarmEnabledList.add(jsonobject.getBoolean("enabled"));
+            adapter.notifyDataSetChanged();
+        }
+    }
 
+    public void getlist(){
+
+        Message listaalarma = new Message();
+        listaalarma.command = "list";
+
+        try {
+            String encrypted = encrypt(jsonStringify(listaalarma));
+            System.out.println(jsonStringify(listaalarma));
+            StringEntity sEntity = new StringEntity(encrypted,"UTF-8");
+            System.out.println("poslo na server" + sEntity);
+            client.post(PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString("ip adress", "192.168.1.117:3000"),response,sEntity);
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
