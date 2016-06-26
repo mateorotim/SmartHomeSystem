@@ -1,9 +1,7 @@
 package com.example.lichedy.smarthomesystem;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -12,7 +10,6 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,26 +17,26 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.NumberPicker;
 import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.TimerTask;
 
 import cz.msebera.android.httpclient.Header;
 import cz.msebera.android.httpclient.entity.StringEntity;
@@ -56,6 +53,7 @@ public class TabFragment1 extends Fragment implements SwipeRefreshLayout.OnRefre
     postRequest client = new postRequest();
     AsyncHttpResponseHandler response;
     SwipeRefreshLayout swipeRefreshLayout;
+    ImageButton btnDelete;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -74,7 +72,6 @@ public class TabFragment1 extends Fragment implements SwipeRefreshLayout.OnRefre
                     String message = input.substring(16,input.length());
                     System.out.println("input=" + input);
                     String decrypted = decrypt(message,iv);
-
                     JsonElement jsonElem = new JsonParser().parse(decrypted);
                     if(jsonElem.isJsonArray()) {
                         // Json data
@@ -86,23 +83,17 @@ public class TabFragment1 extends Fragment implements SwipeRefreshLayout.OnRefre
                                 adapter.notifyDataSetChanged();
                                 swipeRefreshLayout.setRefreshing(false);
                             }
-                        }, 500);
-
-                        Snackbar.make(getView(), "Updated", Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                        }, 700);
                     } else {
                         // message data
                         Snackbar.make(getView(), decrypted, Snackbar.LENGTH_LONG).setAction("Action", null).show();
-
-                        if(decrypted == "OK"){
-                            //implement counter
-                        }
                     }
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-
+                Snackbar.make(getView(), "Updated", Snackbar.LENGTH_LONG).setAction("Action", null).show();
             }
 
             @Override
@@ -118,7 +109,7 @@ public class TabFragment1 extends Fragment implements SwipeRefreshLayout.OnRefre
                     Snackbar.make(getView(), "Host not responding", Snackbar.LENGTH_LONG).setAction("Action", null).show();
                     swipeRefreshLayout.setRefreshing(false);
                 }
-
+                getlist();
             }
             @Override
             public void onRetry(int retryNo) {
@@ -221,49 +212,16 @@ public class TabFragment1 extends Fragment implements SwipeRefreshLayout.OnRefre
         adapter = new MySimpleArrayAdapter(getContext(), alarmNamesList, valveNamesList, startTimeList, endTimeList, alarmEnabledList);
         alarmlist = (ListView)myview.findViewById(R.id.alarmsList);
         alarmlist.setAdapter(adapter);
-        final SwipeDetector sw = new SwipeDetector();
-        alarmlist.setOnTouchListener(sw);
-        alarmlist.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        /*alarmlist.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View v, final int position, long id) {
-                if(sw.swipeDetected()) {
-                    if(sw.getAction() == SwipeDetector.Action.LR) {
-
-
-                        final Animation animation = AnimationUtils.loadAnimation(getActivity(),android.R.anim.slide_out_right);
-                        v.startAnimation(animation);
-                        Handler handle = new Handler();
-                        handle.postDelayed(new Runnable() {
-
-                            @Override
-                            public void run() {
-
-
-
-                                Message listaalarma = new Message();
-                                listaalarma.command = "remove";
-                                listaalarma.timer.name = alarmNamesList.get(position);
-                                try {
-                                    String encrypted = encrypt(jsonStringify(listaalarma));
-                                    System.out.println(jsonStringify(listaalarma));
-                                    StringEntity sEntity = new StringEntity(encrypted,"UTF-8");
-                                    System.out.println("poslo na server" + sEntity);
-                                    client.post(PreferenceManager.getDefaultSharedPreferences(getContext()).getString("ip adress", "192.168.1.117:3000"),response,sEntity);
-                                    getlist();
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                                animation.cancel();
-                            }
-                        },400);
-
-                    } else {
-
-                    }
+                if(btnDelete.getVisibility() == View.GONE){
+                    btnDelete.setVisibility(View.VISIBLE);
                 }
+                else btnDelete.setVisibility(View.GONE);
 
             }
-        });
+        });*/
 
         FloatingActionButton fab = (FloatingActionButton) myview.findViewById(R.id.fabbb);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -298,7 +256,6 @@ public class TabFragment1 extends Fragment implements SwipeRefreshLayout.OnRefre
         CryptLib _crypt = new CryptLib();
         String key = CryptLib.SHA256("my secret key", 32); //32 bytes = 256 bit
         String output = _crypt.decrypt(message, key,iv); //decrypt
-        System.out.println("decrypted text=" + output);
         return output;
     }
 
@@ -370,7 +327,7 @@ public class TabFragment1 extends Fragment implements SwipeRefreshLayout.OnRefre
         }
 
         @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
+        public View getView(final int position, View convertView, ViewGroup parent) {
             LayoutInflater inflater = (LayoutInflater) context
                     .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             View rowView = inflater.inflate(R.layout.list_layout, parent, false);
@@ -383,6 +340,25 @@ public class TabFragment1 extends Fragment implements SwipeRefreshLayout.OnRefre
             valvename.setText(valves.get(position));
             starttime.setText(start.get(position).toString());
             endtime.setText(end.get(position).toString());
+            btnDelete = (ImageButton)rowView.findViewById(R.id.btndelete);
+            btnDelete.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Message listaalarma = new Message();
+                    listaalarma.command = "remove";
+                    listaalarma.timer.name = alarmNamesList.get(position);
+                    try {
+                        String encrypted = encrypt(jsonStringify(listaalarma));
+                        System.out.println(jsonStringify(listaalarma));
+                        StringEntity sEntity = new StringEntity(encrypted,"UTF-8");
+                        System.out.println("poslo na server" + sEntity);
+                        client.post(PreferenceManager.getDefaultSharedPreferences(getContext()).getString("ip adress", "192.168.1.117:3000"),response,sEntity);
+                        getlist();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
             togglealarm.setChecked(isEnabled.get(position));
             togglealarm.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
@@ -419,7 +395,6 @@ public class TabFragment1 extends Fragment implements SwipeRefreshLayout.OnRefre
                             e.printStackTrace();
                         }
                     }
-                    getlist();
                 }
             });
 

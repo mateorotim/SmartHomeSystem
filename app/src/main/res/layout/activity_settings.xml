@@ -38,4 +38,17 @@
         android:layout_alignBottom="@+id/IPeditText"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true" />
+
+    <Switch
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Svjetlo bazena"
+        android:id="@+id/switchPool"
+        android:layout_below="@+id/IPeditText"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="35dp"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+
 </RelativeLayout>

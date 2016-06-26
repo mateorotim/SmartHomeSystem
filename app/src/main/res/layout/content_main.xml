@@ -27,6 +27,8 @@
             android:id="@+id/alarmsList"
             android:layout_centerHorizontal="true"
             android:scrollIndicators="none"
+            android:paddingBottom="80dp"
+            android:clipToPadding="false"
             android:stackFromBottom="false"
             android:smoothScrollbar="true" />
 

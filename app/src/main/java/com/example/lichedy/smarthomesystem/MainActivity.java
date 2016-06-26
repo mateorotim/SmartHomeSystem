@@ -3,6 +3,7 @@ package com.example.lichedy.smarthomesystem;
 
 import android.content.Intent;
 
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 
 import android.support.design.widget.TabLayout;
@@ -23,8 +24,8 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         TabLayout tabLayout = (TabLayout) findViewById(R.id.tab_layout);
-        tabLayout.addTab(tabLayout.newTab().setText("Home Remote"));
-        tabLayout.addTab(tabLayout.newTab().setText("Sprinkler Alarms"));
+        tabLayout.addTab(tabLayout.newTab().setIcon(R.drawable.ic_home_tab));
+        tabLayout.addTab(tabLayout.newTab().setIcon(R.drawable.ic_alarms_tab));
         tabLayout.setTabGravity(TabLayout.GRAVITY_FILL);
 
         final ViewPager viewPager = (ViewPager) findViewById(R.id.pager);
